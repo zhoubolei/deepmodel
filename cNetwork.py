@@ -8,9 +8,9 @@ THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python convolutional_bolei.
 
 """
 #TODO: 
-# 1) the module of IO for loading and saving model parameters.
-# 2) the module of testing the best model on testing dataset.
-# 3) the module of plotting error samples.
+# - the module of IO for loading and saving model parameters.
+# - the module of testing the best model on testing dataset.
+# - the module of plotting error samples and confusion matrix
 
 import cPickle
 import os
@@ -115,7 +115,8 @@ class Dataset(object):
 
 
 def runDeepLearning():
-### LOADING TRAINING SET
+### Loading training set and separting it into training set and testing set
+#TODO: loading testing set and evaluate the model on it. 
     myDataset = Dataset()
     datasets = myDataset.loadTrain()
     train_set_x, train_set_y = datasets[0]
