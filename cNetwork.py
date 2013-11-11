@@ -11,6 +11,7 @@ THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python convolutional_bolei.
 # - the module of IO for loading and saving model parameters.
 # - the module of testing the best model on testing dataset.
 # - the module of plotting error samples and confusion matrix
+# - the module of handeling the output of face detection 
 
 import cPickle
 import os
