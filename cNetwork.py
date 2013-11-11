@@ -4,7 +4,7 @@ building convolutional network on facial emotion dataset
 Bolei Zhou
 
 usage: test it on GPU
-THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python convolutional_bolei.py
+THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python cNetwork.py
 
 """
 #TODO: 
@@ -37,13 +37,51 @@ class Dataset(object):
     def __init__(self):
         
         #self.base_path = os.environ['PYLEARN2_DATA_PATH'] + '/icml_2013_emotions/'
-        self.base_path = '/home/bolei/data/icml_2013_emotions/'
+        self.base_path = '/afs/csail.mit.edu/u/b/bzhou/data/pylearn2/icml_2013_emotions/'
+        #self.base_path = '/home/bolei/data/icml_2013_emotions/'
         self.files = {'train': 'train.csv', 'test' : 'test.csv'}
         self.validationSetRatio = 0.2 # the size of validation set
+        self.data = []
+    
+    def loadTest(self, preprocess = 1):
+        print '... loading testing data'
+        file_data = 'test.csv'
+        file_label = 'test_all_truth.csv'
+        csv_file = open(self.base_path + file_data, 'r')
+        reader = csv.reader(csv_file)        
+        # Discard header
+        row = reader.next()
+        
+        X_list = []
+        
+        for row in reader:
+            X_row_str ,= row
+            X_row_strs = X_row_str.split(' ')
+            X_row = map(lambda x: float(x), X_row_strs)
+            if preprocess ==1:                
+                X_list.append(self.histeq(X_row))   
+            else:
+                X_list.append(X_row)
+            
+        csv_file = open(self.base_path + file_label, 'r')
+        reader = csv.reader(csv_file)  
+        
+        # Discard header       
+        y_list = []
+        
+        for row in reader:
+            y_str, = row
+            y = int(y_str)
+            y_list.append(y)  
+        
+        assert (len(X_list) == len(y_list))     
+        test_set_x, test_set_y = self.shared_dataset(X_list, y_list)
+        rval = [(test_set_x, test_set_y)]
 
-    def loadTrain(self):    
+        return rval
+        
+    def loadTrain(self, preprocess=1):    
         print '... loading training data'
-        expect_labels = 1
         setType = 'train'
         
         csv_file = open(self.base_path + self.files[setType], 'r')
@@ -56,16 +94,17 @@ class Dataset(object):
         X_list = []
 
         for row in reader:
-            if expect_labels:
-                y_str, X_row_str = row
-                y = int(y_str)
-                y_list.append(y)
-            else:
-                X_row_str ,= row
+            y_str, X_row_str = row
+            y = int(y_str)
+            y_list.append(y)
+
             X_row_strs = X_row_str.split(' ')
             X_row = map(lambda x: float(x), X_row_strs)
-            X_list.append(self.histeq(X_row))    
-     
+            if preprocess ==1:
+                X_list.append(self.histeq(X_row))    
+            else:
+                X_list.append(X_row)
+        assert (len(X_list) == len(y_list))
         print '... randomly separting training set and validation set' 
 
         sizeTrainSet = len(X_list)        
@@ -90,8 +129,8 @@ class Dataset(object):
         
     def shared_dataset(self, data_x, data_y, borrow=True):
         """ Function that loads the dataset into shared variables
-
-        """
+            for the convenience of GPU CUDA computation
+        """ 
 
         shared_x = theano.shared(np.asarray(data_x,
                                                dtype=theano.config.floatX),
@@ -114,15 +153,25 @@ class Dataset(object):
 
         return face_vector_normalized
 
-
+    def plotExample(self, dataList, sampleIndex, outputNum = 10000):
+        # plotting out the samples according to the sample Index
+        # dataList = [[3,4,5,5..],[4,5,6,7]...,...] 
+        # sampleIndex = [13,4,5,
+        # output a image with [sqrt(otuputNum), sqrt(outputNum)]
+        pass
+        
 def runDeepLearning():
 ### Loading training set and separting it into training set and testing set
-#TODO: loading testing set and evaluate the model on it. 
+   
     myDataset = Dataset()
-    datasets = myDataset.loadTrain()
+    preprocess = 0
+    datasets = myDataset.loadTrain(preprocess)
     train_set_x, train_set_y = datasets[0]
     valid_set_x, valid_set_y = datasets[1]
-    print train_set_y
+
+    dataset_test = myDataset.loadTest(preprocess)
+    test_set_x, test_set_y = dataset_test[0]
+
     
 ### Model parameters
     learning_rate = 0.02
@@ -133,9 +182,10 @@ def runDeepLearning():
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_set_x.get_value(borrow=True).shape[0]
     n_valid_batches = valid_set_x.get_value(borrow=True).shape[0]
+    n_test_batches = test_set_x.get_value(borrow=True).shape[0]
     n_train_batches /= batch_size
     n_valid_batches /= batch_size
-
+    n_test_batches /= batch_size
 
     # allocate symbolic variables for the data
     index = T.lscalar()  # index to a [mini]batch
@@ -198,6 +248,11 @@ def runDeepLearning():
             givens={
                 x: valid_set_x[index * batch_size: (index + 1) * batch_size],
                 y: valid_set_y[index * batch_size: (index + 1) * batch_size]})
+                
+    test_model = theano.function([index], layer4.errors(y),
+            givens={
+                x: test_set_x[index * batch_size: (index + 1) * batch_size],
+                y: test_set_y[index * batch_size: (index + 1) * batch_size]})
 
     # create a list of all model parameters to be fit by gradient descent
     params = layer4.params + layer3.params + layer2.params + layer1.params + layer0.params
@@ -277,14 +332,14 @@ def runDeepLearning():
                     best_iter = iter
 
                     # test it on the test set
-                    """
+                    
                     test_losses = [test_model(i) for i in xrange(n_test_batches)]
                     test_score = np.mean(test_losses)
                     print(('     epoch %i, minibatch %i/%i, test error of best '
                            'model %f %%') %
                           (epoch, minibatch_index + 1, n_train_batches,
                            test_score * 100.))
-                    """
+                    
             if patience <= iter:
                 done_looping = True
                 break
@@ -296,7 +351,7 @@ def runDeepLearning():
     
     print('Best validation score of %f %% obtained at iteration %i,'\
           'with test performance %f %%' %
-          (best_validation_loss * 100., best_iter + 1, 0))
+          (best_validation_loss * 100., best_iter + 1, test_score * 100.))
     print >> sys.stderr, ('The code for file ' +
                           os.path.split(__file__)[1] +
                           ' ran for %.2fm' % ((end_time - start_time) / 60.))
