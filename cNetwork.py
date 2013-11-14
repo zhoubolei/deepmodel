@@ -21,6 +21,7 @@ import time
 import csv
 
 import numpy as np
+import Image
 
 import theano
 import theano.tensor as T
@@ -43,7 +44,7 @@ class Dataset(object):
         self.validationSetRatio = 0.2 # the size of validation set
         self.data = []
     
-    def loadTest(self, preprocess = 1):
+    def loadTest(self, preprocessFLAG = 0):
         print '... loading testing data'
         file_data = 'test.csv'
         file_label = 'test_all_truth.csv'
@@ -58,7 +59,7 @@ class Dataset(object):
             X_row_str ,= row
             X_row_strs = X_row_str.split(' ')
             X_row = map(lambda x: float(x), X_row_strs)
-            if preprocess ==1:                
+            if preprocessFLAG ==1:                
                 X_list.append(self.histeq(X_row))   
             else:
                 X_list.append(X_row)
@@ -76,11 +77,13 @@ class Dataset(object):
         
         assert (len(X_list) == len(y_list))     
         test_set_x, test_set_y = self.shared_dataset(X_list, y_list)
-        rval = [(test_set_x, test_set_y)]
+        rval = [(test_set_x, test_set_y, np.array(y_list))]
 
         return rval
         
-    def loadTrain(self, preprocess=1):    
+    def loadTrain(self, preprocessFLAG=0, flipFLAG=2): 
+        # preprocessFLAG: whether to do preprocess on the data
+        # flipFLAG: whether augment training data with the flipped samples   
         print '... loading training data'
         setType = 'train'
         
@@ -100,13 +103,27 @@ class Dataset(object):
 
             X_row_strs = X_row_str.split(' ')
             X_row = map(lambda x: float(x), X_row_strs)
-            if preprocess ==1:
+            if preprocessFLAG ==1:
                 X_list.append(self.histeq(X_row))    
             else:
                 X_list.append(X_row)
         assert (len(X_list) == len(y_list))
         print '... randomly separting training set and validation set' 
 
+        if flipFLAG == 1:
+            print "including flipped training data..."
+            X_list_flipLR, X_list_flipUD = self.flipData(X_list)
+            X_list = X_list + X_list_flipLR
+            y_list = y_list + y_list
+        elif flipFLAG == 2:
+            print "including flipped training data..."
+            X_list_flipLR, X_list_flipUD = self.flipData(X_list)
+            X_list = X_list + X_list_flipLR + X_list_flipUD
+            y_list = y_list + y_list + y_list
+        else:
+            pass        
+            
+        
         sizeTrainSet = len(X_list)        
         startIndex_validation = int(self.validationSetRatio*sizeTrainSet)
         randomIndex = np.random.permutation([i for i in range(sizeTrainSet)])
@@ -153,48 +170,43 @@ class Dataset(object):
 
         return face_vector_normalized
 
-    def plotExample(self, dataList, labelList,  sampleIndex, outputNum = 10000):
+    def plotSample(self, dataList, labelList,  sampleIndex, saveFile='errorSample.jpg', outputNum = 100, sizeImg=[48,48]):
         #TODO
         # plotting out the samples according to the sample Index
         # dataList = [[3,4,5,5..],[4,5,6,7]...,...] 
-        # sampleIndex = [13,4,5,
+        # sampleIndex = [13,4,5,3]
         # output a image with [sqrt(otuputNum), sqrt(outputNum)]
-        """
-        Hint: 
-        blank_image = Image.new("RGB", (800, 600))
-        blank_image.paste(image64, (0,0))
-        blank_image.paste(fluid128, (400,0))
-        blank_image.paste(fluid512, (0,300))
-        blank_image.paste(fluid1024, (400,300))
-        blank_image.save(out)
-        
-        
-        import Image
 
-        #opens an image:
-        im = Image.open("1_tree.jpg")
-        #creates a new empty image, RGB mode, and size 400 by 400.
-        new_im = Image.new('RGB', (400,400))
-
-        #Here I resize my opened image, so it is no bigger than 100,100
-        im.thumbnail((100,100))
-        #Iterate through a 4 by 4 grid with 100 spacing, to place my image
-        for i in xrange(0,500,100):
-            for j in xrange(0,500,100):
-                #I change brightness of the images, just to emphasise they are unique copies.
-                im=Image.eval(im,lambda x: x+(i+j)/30)
-                #paste the image at location i,j:
-                new_im.paste(im, (i,j))
-
-        new_im.show()
-        """
-        sampleList = [dataList[i] for i in sampleIndex]
-        
-        imgVector = sampleList[0]
-        singleImg = np.asarray(imgVector).astype('uint8').reshape((48,48))
-        im = Image.fromarray(singleImg)
-        im.save('myImg.jpg')
-        pass
+        nRow = int(np.sqrt(outputNum))
+        img_plot = Image.new('L', (sizeImg[0]*nRow,sizeImg[1]*nRow))
+        imgIndex = 0
+        for i in xrange(0, sizeImg[0]*nRow, sizeImg[0]):
+            for j in xrange(0, sizeImg[1]*nRow, sizeImg[0]):
+                if len(sampleIndex)<= imgIndex:
+                    break
+                sampleVector = dataList[sampleIndex[imgIndex]]
+                singleImg = np.asarray(sampleVector).astype('uint8').reshape((sizeImg[0],sizeImg[1]))
+                im = Image.fromarray(singleImg)
+                #im.save('testSample.jpg')
+                #raw_input('wait')
+                img_plot.paste(im, (i,j))
+                imgIndex += 1
+        print 'save misclassified sample'
+        img_plot.save(saveFile)
+    
+    def flipData(self, sampleList, sizeImg = [48, 48]):
+        # flip the image set from left to right, and upside down
+        print "flip the images"
+        sampleList_LR = []
+        sampleList_UD = []
+        for i in range(len(sampleList)):
+            curSampleVector = sampleList[i]
+            singleImg = np.asarray(curSampleVector).astype('uint8').reshape((sizeImg[0],sizeImg[1]))
+            singleImg_ud = np.flipud(singleImg)
+            singleImg_lr = np.fliplr(singleImg)
+            sampleList_UD.append(list(singleImg_ud.reshape((sizeImg[0]*sizeImg[1]))))
+            sampleList_LR.append(list(singleImg_lr.reshape((sizeImg[0]*sizeImg[1]))))
+        return sampleList_LR, sampleList_UD
         
 def runDeepLearning():
 ### Loading training set and separting it into training set and testing set
@@ -206,14 +218,16 @@ def runDeepLearning():
     valid_set_x, valid_set_y = datasets[1]
 
     dataset_test = myDataset.loadTest(preprocess)
-    test_set_x, test_set_y = dataset_test[0]
+    test_set_x, test_set_y, test_set_y_array = dataset_test[0] 
+    # temporary solution to get the ground truth of sample out to test_set_y_array.
+    # the reason is that after T.cast, test_set_y becomes TensorVariable, which I do not find way to output its
+    # value...anyone can help?
 
-    
 ### Model parameters
     learning_rate = 0.02
-    n_epochs = 2000
+    n_epochs = 3000
     nkerns=[30, 40, 40] # number of kernal at each layer, current best performance is 50.0% on testing set, kernal number is [30,40,40]
-    batch_size = 800
+    batch_size = 500
     
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_set_x.get_value(borrow=True).shape[0]
@@ -285,7 +299,7 @@ def runDeepLearning():
                 x: valid_set_x[index * batch_size: (index + 1) * batch_size],
                 y: valid_set_y[index * batch_size: (index + 1) * batch_size]})
                 
-    test_model = theano.function([index], layer4.errors(y),
+    test_model = theano.function([index], layer4.errorsLabel(y),
             givens={
                 x: test_set_x[index * batch_size: (index + 1) * batch_size],
                 y: test_set_y[index * batch_size: (index + 1) * batch_size]})
@@ -369,12 +383,31 @@ def runDeepLearning():
 
                     # test it on the test set
                     
-                    test_losses = [test_model(i) for i in xrange(n_test_batches)]
+                    #test_losses = [test_model(i) for i in xrange(n_test_batches)]
+                    test_output = [test_model(i) for i in xrange(n_test_batches)]
+                    test_losses = [item[0] for item in test_output]
+                    #test_y_gt = [label[0] for label in item[1] for item in test_output] #
+                    test_y_pred = np.array([label for label in item[1] for item in test_output]) 
+                    test_y_gt = np.array([label for label in item[2] for item in test_output]) 
+                    #test_y_pred = np.array([item[1] for item in test_output] )
+                    ## the predicted_labels for the input
+                    ### it seems that the batchsize cannot be change in Theano.function while training model ###
+                    #test_label = reduce(lambda x,y: x+y,test_label)
+                    
+                    #print test_y_pred
+                    #print test_y_gt
+                    #print test_set_y_array
+                    
+                    errorNum = np.count_nonzero(test_y_gt - test_y_pred)
+                    errorSampleIndex = [i for i in range(len(test_y_pred)) if test_y_pred[i]!=test_set_y_array[i]] 
+                    #print errorNum, len(errorSampleIndex)
+
                     test_score = np.mean(test_losses)
-                    print(('     epoch %i, minibatch %i/%i, test error of best '
+                    print(('  epoch %i, minibatch %i/%i, test error of best '
                            'model %f %%') %
                           (epoch, minibatch_index + 1, n_train_batches,
                            test_score * 100.))
+                    print((' on all test sample %f %%')%((float(errorNum)/float(len(test_y_pred))*100.)))
                     
             if patience <= iter:
                 done_looping = True
@@ -391,7 +424,9 @@ def runDeepLearning():
     print >> sys.stderr, ('The code for file ' +
                           os.path.split(__file__)[1] +
                           ' ran for %.2fm' % ((end_time - start_time) / 60.))
-
+    # save the misclassified samples
+    myDataset.plotSample(test_set_x.get_value(), test_set_y,[i for i in range(0,100)])
+    
 if __name__ == '__main__':
     runDeepLearning()
 
