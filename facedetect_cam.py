@@ -2,6 +2,7 @@
 import sys
 import cv2.cv as cv
 from optparse import OptionParser
+import numpy as np
 
 # Parameters for haar detection
 # From the API:
@@ -45,28 +46,29 @@ def detect_and_draw(img, cascade):
                 
                 pt1 = (int(x * image_scale), int(y * image_scale))
                 pt2 = (int((x + w) * image_scale), int((y + h) * image_scale))
-                print pt1
-                print pt2
-                print img.height, img.width
                 #img_face = img[pt1[1]:pt2[1],pt1[0]:pt2[0]]
                 img_face_small = small_img[y:y+h,x:x+w]
                 cv.Resize(img_face_small, img48, cv.CV_INTER_LINEAR)
-                faceVector = 
+                face_vector = np.asarray(img48[:,:])
+                face_vector = face_vector.reshape(48*48)
+                print face_vector
                 cv.Rectangle(img, pt1, pt2, cv.RGB(255, 0, 0), 3, 8, 0)
     if faces:
         cv.ShowImage("result", img48)
+        return face_vector
     else:
         cv.ShowImage("result", img)
-
+        return 0
+        
 if __name__ == '__main__':
 
     parser = OptionParser(usage = "")
-    parser.add_option("-c", "--cascade", action="store", dest="cascade", type="str", help="Haar cascade file, default %default", default = "../../data/haarcascades/haarcascade_frontalface_alt.xml")
+    parser.add_option("-c", "--cascade", action="store", dest="cascade", type="str", help="Haar cascade file, default %default", default = "/afs/csail.mit.edu/u/b/bzhou/code/OpenCV-2.4.2/data/haarcascades/haarcascade_frontalface_alt.xml")
     (options, args) = parser.parse_args()
 
     cascade = cv.Load(options.cascade)
 
-    capture = cv.CreateCameraCapture(2)
+    capture = cv.CreateCameraCapture(0)
 
     cv.NamedWindow("result", 1)
 
@@ -85,7 +87,7 @@ if __name__ == '__main__':
             else:
                 cv.Flip(frame, frame_copy, 0)
 
-            detect_and_draw(frame_copy, cascade)
+            face_vector = detect_and_draw(frame_copy, cascade)
 
             if cv.WaitKey(10) >= 0:
                 break
