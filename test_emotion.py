@@ -12,12 +12,13 @@ if __name__ == '__main__':
 
     cascade = cv.Load(options.cascade)
     
-    input_name = '/home/bolei/Pictures/face/1.jpg'
-    image = cv.LoadImage(input_name, 1)
-    face_vector = detect_and_draw(image, cascade)
-    
-    emotionTag = learner.TestSingle(face_vector)
-    print emotionTag
-    
-    #self.tag = {0:'Angry', 1:'Disgust', 2:'Fear', 3:'Happy', 4:'Sad', 5:'Surprise', 6:'Neutral'}
-    cv.WaitKey(0)
+    for i in range(1,22):
+        input_name = '/home/bolei/Pictures/face/' + str(i) + '.jpg'
+        image = cv.LoadImage(input_name, 1)
+        
+        face_vector = detect_and_draw(image, cascade)
+        if len(face_vector)==48*48:
+            emotionTag = learner.TestSingle(face_vector)
+            print emotionTag       
+        #self.tag = {0:'Angry', 1:'Disgust', 2:'Fear', 3:'Happy', 4:'Sad', 5:'Surprise', 6:'Neutral'}
+            cv.WaitKey(0)
