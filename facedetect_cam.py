@@ -57,7 +57,11 @@ def detect_and_draw(img, cascade):
         return face_vector
     else:
         cv.ShowImage("result", img)
+<<<<<<< HEAD
         return []
+=======
+        return 0
+>>>>>>> 863a50da766d6ba8ce099e4e25cc4ff33587b5c3
         
 if __name__ == '__main__':
 

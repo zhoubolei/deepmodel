@@ -86,4 +86,28 @@ class faceDetector(object):
         else:
             return [0,0]
         
+        self.capture = cv.CreateCameraCapture(2)
+        return self.capture
+        
+    def retrieveCam(self):
+        if self.capture!=0:        
+            #frame_copy = None
+            frame = cv.QueryFrame(self.capture)
+            if not frame:
+                return [0,0]
+            #if not frame_copy:
+            #    frame_copy = cv.CreateImage((frame.width,frame.height),cv.IPL_DEPTH_8U, frame.nChannels)
+            #if frame.origin == cv.IPL_ORIGIN_TL:
+            #    cv.Copy(frame, frame_copy)
+            #else:
+            #    cv.Flip(frame, frame_copy, 0)
+
+            face_set, img_rectangle = self.detect_and_draw(frame)
+            
+            if face_set!=0:
+                #cv.ShowImage("result", img_rectangle)
+                return [face_set, img_rectangle]
+            else:
+                return [0, frame]
+                #cv.ShowImage("result", frame_copy)
 

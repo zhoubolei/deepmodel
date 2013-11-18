@@ -29,6 +29,7 @@ class DataPylearn2(DenseDesignMatrix):
                 tmp[yi] = 1
                 y_mat.append(tmp)
             y_mat = np.asarray(y_mat).astype('float32')
+           
         view_converter = DefaultViewConverter(shape=ishape, axes=axes)
         if preprocess:
             preprocessor.apply(self, can_fit=fit_preprocessor)
@@ -63,6 +64,7 @@ class LoadData(object):
             cc += 1
             if cc==cutFLAG:
                 break
+
         csv_file = open(self.base_path + file_label, 'r')
         reader = csv.reader(csv_file)
         # Discard header
@@ -93,7 +95,6 @@ class LoadData(object):
         row = reader.next()
         y_list = []
         X_list = []
-
         cc = 0
         for row in reader:
             y_str, X_row_str = row

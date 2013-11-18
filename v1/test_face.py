@@ -25,5 +25,13 @@ def testCam():
 if __name__ == '__main__':
     testImg() # test input image
     #testCam() # test camera image
-    
-
+    #faceXMLpath =  "/home/bolei/code/opencv-2.4.7/data/haarcascades/haarcascade_frontalface_alt.xml"
+    faceXMLpath = "/afs/csail.mit.edu/u/b/bzhou/code/OpenCV-2.4.2/data/haarcascades/haarcascade_frontalface_alt.xml"
+    myDetector = faceDetector(faceXMLpath)
+    capture = myDetector.openCam()
+    while 1:
+        face_set, img_rectangle = myDetector.retrieveCam()
+        cv.ShowImage("result", img_rectangle)
+        print face_set
+        if cv.WaitKey(10) >= 0:
+            break
