@@ -34,13 +34,10 @@ class faceDetector(object):
         cv.Resize(gray, small_img, cv.CV_INTER_LINEAR)
 
         cv.EqualizeHist(small_img, small_img)
-
         
         if (self.cascade):
-            t = cv.GetTickCount()
             faces = cv.HaarDetectObjects(small_img, self.cascade, cv.CreateMemStorage(0),
                                          haar_scale, min_neighbors, haar_flags, min_size)
-            t = cv.GetTickCount() - t
             print "detection time = %gms" % (t/(cv.GetTickFrequency()*1000.))
             if faces:
                 face_set = []
@@ -56,11 +53,11 @@ class faceDetector(object):
                     face_vector = face_vector.reshape(48*48)
                     face_set.append(face_vector)
                     cv.Rectangle(img, pt1, pt2, cv.RGB(255, 0, 0), 3, 8, 0)
-        if faces:
-            return [face_set, img]
-        else:
+
+                return [face_set, img]
+            else:
             #cv.ShowImage("result", img)
-            return [0,0]
+                return [0,0]
 
     def detectImg(self, input_name):
         image = cv.LoadImage(input_name, 1)      
