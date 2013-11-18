@@ -3,7 +3,6 @@ from pylearn2.models.mlp import Layer,ConvRectifiedLinear,RectifiedLinear,Softma
 def DBL_ConvLayers(nkernels,kshape=[],irange=[],pshape=[],pstride=[],knorm=[]):
     numlayer=  len(nkernels)
     layers = [None] * numlayer
-    print knorm,numlayer
     for i in range(numlayer):
         layers[i] = ConvRectifiedLinear(
                 layer_name='h'+str(i),

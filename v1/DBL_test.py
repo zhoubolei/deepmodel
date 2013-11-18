@@ -9,11 +9,10 @@ from DBL_layer import DBL_ConvLayers
 from DBL_model import DBL_model
 import os
 import cPickle
-def DBL_model_test1(basepath,pklname='',newdata=None):
+def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
     if pklname!='' and os.path.isfile(pklname):
-        if newdata!=None:
-            DBL = cPickle.load(open(pklname))
-            DBL.test_raw(newdata)
+        DBL = cPickle.load(open(pklname))
+        DBL.test_raw(newdata)
     else:
         # data 
         ishape = Conv2DSpace(
@@ -22,10 +21,11 @@ def DBL_model_test1(basepath,pklname='',newdata=None):
                 )
         preproc=[0,3]
         # create layers
-        nk = [40,40,40]
-        ks = [[5,5],[5,5],[5,5]]
+        nk = [30,40]
+        #nk = [40,30,20]
+        ks = [[5,5],[8,8],[3,3]]
         ir = [0.05,0.05,0.05]
-        ps = [[2,2],[2,2],[2,2]]
+        ps = [[2,2],[4,4],[2,2]]
         pd = [[2,2],[2,2],[2,2]]
         kn = [0.9,0.9,0.9]
         layers = DBL_ConvLayers(nk,ks,ir,ps,pd,kn)
@@ -37,23 +37,48 @@ def DBL_model_test1(basepath,pklname='',newdata=None):
         )
         layers.append(layer_soft)
         
+        #model = MLP(layer_soft, input_space=ishape)
         model = MLP(layers, input_space=ishape)
         algo = SGD(learning_rate = 1e-1,
-                batch_size = 99,
+                batch_size = 100,
                 batches_per_iter = 1,
                 termination_criterion=EpochCounter(2)
                 )
 
         # create DBL_model
-        DBL = DBL_model(model,algo,basepath,preproc)
+        DBL = DBL_model(model,algo,basepath,preproc,cutoff)
         if pklname!='':
             cPickle.dump(DBL,open(pklname, 'wb'))
 
     return DBL.result_valid,DBL.result_test
 
 if __name__ == "__main__": 
-    DD = '/home/Stephen/Desktop/Bird/DLearn/Data/Emotion_small/'
+    DD = '/home/Stephen/Desktop/Bird/DLearn/Data/Emotion/'
     data = None
-    T1_v,T1_t = DBL_model_test1(DD)
+    T1_v,T1_t = DBL_model_test1(DD,[125,100],DD+'train.pkl')
     print T1_v[1]
     print T1_t[1]
+    """
+    import cPickle
+    FF = '/home/Stephen/Desktop/Bird/DLearn/Data/Emotion/train.pkl'
+    a=cPickle.load(open(FF))
+    X = a.model.get_input_space().make_batch_theano()
+    Y = a.model.fprop(X)
+    from theano import tensor as T
+    y = T.argmax(Y, axis=1)
+    from theano import function
+    f = function([X], y)
+    f2 = function([X], Y)
+    xx = a.ds_test.get_topological_view(a.ds_test.X)
+    f(xx)
+    f2(xx)
+    # show weight
+    python /home/Stephen/Desktop/Bird/DLearn/Dis/pylearn2/pylearn2/scripts/show_weights.py /home/Stephen/Desktop/Bird/DLearn/Dis/deepmodel/v1/ha2.pkl 
+    mm=a.model
+    cPickle.dump(mm,open('ha2.pkl','wb'))
+
+    python /home/Stephen/Desktop/Bird/DLearn/Dis/pylearn2/pylearn2/scripts/plot_monitor.py /home/Stephen/Desktop/Bird/DLearn/Dis/deepmodel/v1/ha2.pkl 
+
+
+THEANO_FLAGS=mode=FAST_RUN,device=gpu0,floatX=float32 python DBL_test.py
+    """

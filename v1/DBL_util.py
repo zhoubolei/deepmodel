@@ -17,7 +17,7 @@ from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 
 
 class DataPylearn2(DenseDesignMatrix):
-    def __init__(self,ds,ishape,numclass,preprocess=0,axes = ('b', 0, 1, 'c'),fit_preprocessor=True):
+    def __init__(self,ds,ishape,numclass=-1,preprocess=0,axes = ('b', 0, 1, 'c'),fit_preprocessor=True):
         X = ds[0]
         y = ds[1]
         
@@ -28,12 +28,12 @@ class DataPylearn2(DenseDesignMatrix):
                 tmp = np.zeros(numclass)
                 tmp[yi] = 1
                 y_mat.append(tmp)
-           
+            y_mat = np.asarray(y_mat).astype('float32')
         view_converter = DefaultViewConverter(shape=ishape, axes=axes)
         if preprocess:
             preprocessor.apply(self, can_fit=fit_preprocessor)
 
-        super(DataPylearn2, self).__init__(X=X, y=np.asarray(y_mat).astype('float32'), view_converter=view_converter)
+        super(DataPylearn2, self).__init__(X=X, y=y_mat, view_converter=view_converter)
 
 class LoadData(object):
     def __init__(self,base_path='',valid_r=0.2):
@@ -42,15 +42,16 @@ class LoadData(object):
         self.validationSetRatio = valid_r # the size of validation set
         self.data = []
 
-    def loadTest(self, preprocessFLAG = 0):
+    def loadTest(self, preprocessFLAG = 0,cutFLAG=-1):
         print '... loading testing data'
         file_data = 'test.csv'
         file_label = 'test_all_truth.csv'
         csv_file = open(self.base_path + file_data, 'r')
         reader = csv.reader(csv_file)
         # Discard header
-        #row = reader.next()
+        row = reader.next()
         X_list = []
+        cc = 0
         for row in reader:
             X_row_str ,= row
             X_row_strs = X_row_str.split(' ')
@@ -59,23 +60,29 @@ class LoadData(object):
                 X_list.append(self.histeq(X_row))
             else:
                 X_list.append(X_row)
-
+            cc += 1
+            if cc==cutFLAG:
+                break
         csv_file = open(self.base_path + file_label, 'r')
         reader = csv.reader(csv_file)
         # Discard header
         #row = reader.next()
         y_list = []
+        cc = 0
         for row in reader:
             y_str, = row
             y = int(y_str)
             y_list.append(y)
+            cc += 1
+            if cc==cutFLAG:
+                break
 
         assert (len(X_list) == len(y_list))
         X = np.asarray(X_list).astype('float32')
         y = np.asarray(y_list).astype('float32')
         return [X,y]
    
-    def loadTrain(self, preprocessFLAG=0, flipFLAG=2):
+    def loadTrain(self, preprocessFLAG=0, flipFLAG=2,cutFLAG=-1):
         # preprocessFLAG: whether to do preprocess on the data
         # flipFLAG: whether augment training data with the flipped samples   
         print '... loading training data'
@@ -86,6 +93,8 @@ class LoadData(object):
         row = reader.next()
         y_list = []
         X_list = []
+
+        cc = 0
         for row in reader:
             y_str, X_row_str = row
             y = int(y_str)
@@ -96,6 +105,10 @@ class LoadData(object):
                 X_list.append(self.histeq(X_row))
             else:
                 X_list.append(X_row)
+            cc += 1
+            if cc==cutFLAG:
+                break
+
         assert (len(X_list) == len(y_list))
         print '... randomly separting training set and validation set'
 
@@ -115,6 +128,7 @@ class LoadData(object):
         sizeTrainSet = len(X_list)
         startIndex_validation = int(self.validationSetRatio*sizeTrainSet)
         randomIndex = np.random.permutation([i for i in range(sizeTrainSet)])
+        randomIndex = range(sizeTrainSet)
         X_list_validation = [X_list[i] for i in randomIndex[:startIndex_validation]]
         y_list_validation = [y_list[i] for i in randomIndex[:startIndex_validation]]
         X_list_train = [X_list[i] for i in randomIndex[startIndex_validation:]]
