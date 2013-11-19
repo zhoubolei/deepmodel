@@ -28,8 +28,11 @@ class DBL_model(object):
     def train(self):
         while True:
             self.algo.train(dataset = self.ds_train)
-            self.model.monitor.report_epoch()
+            self.model.monitor.report_epoch()            
             self.model.monitor()
+            # hack the monitor
+            print "monior:\n"
+            self.test(self.ds_valid)
             if not self.algo.continue_learning(self.model):
                 break
        
@@ -46,7 +49,7 @@ class DBL_model(object):
         batch_size = self.algo.batch_size
         m = ds2.X.shape[0]
         extra = (batch_size - m % batch_size) % batch_size
-        print extra,batch_size,m
+        #print extra,batch_size,m
         assert (m + extra) % batch_size == 0
         if extra > 0:
             ds2.X = np.concatenate((ds2.X, np.zeros((extra, ds2.X.shape[1]),
@@ -68,11 +71,19 @@ class DBL_model(object):
 
         y = np.concatenate(y)
         y = y[:m]
+        ds2.X = ds2.X[:m,:]
+        """"""
         print y
+        print ds2.y
+        
+        print len(y)
+        print len(ds2.y)
+        
         acc = 0
         if len(ds2.y)>0: 
             assert len(y)==len(ds2.y)
             acc = float(np.sum(y-ds2.y==0))/len(ds2.y)
+        print acc
         return [[y],[acc]]
 
 

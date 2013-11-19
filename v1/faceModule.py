@@ -38,7 +38,6 @@ class faceDetector(object):
         if (self.cascade):
             faces = cv.HaarDetectObjects(small_img, self.cascade, cv.CreateMemStorage(0),
                                          haar_scale, min_neighbors, haar_flags, min_size)
-            print "detection time = %gms" % (t/(cv.GetTickFrequency()*1000.))
             if faces:
                 face_set = []
                 for ((x, y, w, h), n) in faces:

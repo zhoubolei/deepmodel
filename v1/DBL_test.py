@@ -19,30 +19,32 @@ def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
                 shape = [48, 48],
                 num_channels = 1
                 )
-        preproc=[0,3]
+        preproc=[0,0]
         # create layers
-        nk = [30,40]
+        nk = [32]
         #nk = [40,30,20]
-        ks = [[5,5],[8,8],[3,3]]
+        ks = [[8,8],[8,8],[3,3]]
         ir = [0.05,0.05,0.05]
-        ps = [[2,2],[4,4],[2,2]]
+        ps = [[4,4],[4,4],[2,2]]
         pd = [[2,2],[2,2],[2,2]]
         kn = [0.9,0.9,0.9]
         layers = DBL_ConvLayers(nk,ks,ir,ps,pd,kn)
         layer_soft = Softmax(
             layer_name='y',
-            max_col_norm = 1.9365,
+            #max_col_norm = 1.9365,
             n_classes = 7,
-            istdev = .05
+            #istdev = .05
+            irange = .0
         )
         layers.append(layer_soft)
         
         #model = MLP(layer_soft, input_space=ishape)
         model = MLP(layers, input_space=ishape)
-        algo = SGD(learning_rate = 1e-1,
-                batch_size = 100,
+        algo = SGD(learning_rate = 0.001,
+                batch_size = 500,
                 batches_per_iter = 1,
-                termination_criterion=EpochCounter(2)
+                init_momentum = .5,
+                termination_criterion=EpochCounter(1000)
                 )
 
         # create DBL_model
@@ -53,9 +55,10 @@ def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
     return DBL.result_valid,DBL.result_test
 
 if __name__ == "__main__": 
-    DD = '/home/Stephen/Desktop/Bird/DLearn/Data/Emotion/'
+    DD = '/afs/csail.mit.edu/u/b/bzhou/data/faceexpression/fer2013/'
+    
     data = None
-    T1_v,T1_t = DBL_model_test1(DD,[125,100],DD+'train.pkl')
+    T1_v,T1_t = DBL_model_test1(DD,[25000,-1],DD+'train.pkl')
     print T1_v[1]
     print T1_t[1]
     """
