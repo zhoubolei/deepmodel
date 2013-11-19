@@ -1,4 +1,6 @@
 # emotion dataset
+# THEANO_FLAGS=mode=FAST_RUN,device=gpu0,floatX=float32 python DBL_test.py
+# 
 
 from pylearn2.space import Conv2DSpace
 from pylearn2.models.mlp import Softmax,MLP
@@ -27,9 +29,9 @@ def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
         DBL = DBL_model(basepath,nclass,np.append(ishape.shape,1),preproc,cutoff)
 
         # create layers
-        nk = [32]
+        nk = [30, 40]
         #nk = [40,30,20]
-        ks = [[8,8],[8,8],[3,3]]
+        ks = [[8,8],[5,5],[3,3]]
         ir = [0.05,0.05,0.05]
         ps = [[4,4],[4,4],[2,2]]
         pd = [[2,2],[2,2],[2,2]]
@@ -48,13 +50,15 @@ def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
         # create DBL_model
         #model = MLP(layer_soft, input_space=ishape)
         model = MLP(layers, input_space=ishape)
-        from pylearn2.termination_criteria import MonitorBased
-        algo_term = MonitorBased(            
-                channel_name = "y_misclass",
-                prop_decrease = 0.,
-                N = 10)
+        from pylearn2.termination_criteria import MonitorBased, EpochCounter
+        #algo_term = MonitorBased(            
+        #        channel_name = "y_misclass",
+        #        prop_decrease = 0.,
+        #        N = 100)
+                
+        algo_term = EpochCounter(200)
         algo = SGD(learning_rate = 0.001,
-                batch_size = 100,
+                batch_size = 500,
                 init_momentum = .5,
                 monitoring_dataset = DBL.ds_valid,
                 termination_criterion=algo_term
@@ -69,11 +73,11 @@ def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
     return DBL.result_valid,DBL.result_test
 
 if __name__ == "__main__": 
-    DD = '/home/Stephen/Desktop/Bird/DLearn/Data/icml_2013_emotions/'
-    #DD = '/afs/csail.mit.edu/u/b/bzhou/data/faceexpression/fer2013/'
+    #DD = '/home/Stephen/Desktop/Bird/DLearn/Data/icml_2013_emotions/'
+    DD = '/afs/csail.mit.edu/u/b/bzhou/data/faceexpression/fer2013/'
     
     data = None
-    T1_v,T1_t = DBL_model_test1(DD,[1500,500],DD+'train.pkl')
+    T1_v,T1_t = DBL_model_test1(DD,[-1,-1],DD+'train.pkl')
     print T1_v[1]
     print T1_t[1]
     """

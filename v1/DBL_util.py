@@ -25,13 +25,16 @@ class EmotionsDataset(DenseDesignMatrix):
     """
 
     def __init__(self, which_set,
-            base_path = '${PYLEARN2_DATA_PATH}/icml_2013_emotions',
+            #base_path = '${PYLEARN2_DATA_PATH}/icml_2013_emotions',
+            base_path = '/afs/csail.mit.edu/u/b/bzhou/data/faceexpression/fer2013',
             start = None,
             stop = None,
             preprocessor = None,
             fit_preprocessor = False,
             axes = ('b', 0, 1, 'c'),
-            fit_test_preprocessor = False):
+            fit_test_preprocessor = False,
+            randindex=None,
+            trainindex=None):
         """
         which_set: A string specifying which portion of the dataset
             to load. Valid values are 'train' or 'public_test'
@@ -62,9 +65,9 @@ class EmotionsDataset(DenseDesignMatrix):
         path = base_path + '/' + filename
 
         path = preprocess(path)
-
+        
         X, y = self._load_data(path, which_set == 'train')
-
+        
 
         if start is not None:
             assert which_set != 'test'
@@ -76,7 +79,11 @@ class EmotionsDataset(DenseDesignMatrix):
             X = X[start:stop, :]
             if y is not None:
                 y = y[start:stop, :]
-
+        if trainindex:
+            X_list_flipLR, X_list_flipUD = self.flipData(X)
+            X = X + X_list_flipLR + X_list_flipUD
+            y = y + y + y
+        
         view_converter = DefaultViewConverter(shape=[48,48,1], axes=axes)
 
         super(EmotionsDataset, self).__init__(X=X, y=y, view_converter=view_converter)
@@ -144,6 +151,21 @@ class EmotionsDataset(DenseDesignMatrix):
             np.save(Y_path, y)
 
         return X, y
+        
+    def flipData(self, sampleList, sizeImg = [48, 48]):
+        # flip the image set from left to right, and upside down
+        print "flip the images"
+        sampleList_LR = []
+        sampleList_UD = []
+        for i in range(len(sampleList)):
+            curSampleVector = sampleList[i]
+            singleImg = np.asarray(curSampleVector).astype('uint8').reshape((sizeImg[0],sizeImg[1]))
+            #singleImg = singleImg.reshape((sizeImg[0],sizeImg[1]))
+            singleImg_ud = np.flipud(singleImg)
+            singleImg_lr = np.fliplr(singleImg)
+            sampleList_UD.append(list(singleImg_ud.reshape((sizeImg[0]*sizeImg[1]))))
+            sampleList_LR.append(list(singleImg_lr.reshape((sizeImg[0]*sizeImg[1]))))
+        return sampleList_LR, sampleList_UD
 
 class DataPylearn2(DenseDesignMatrix):
     def __init__(self,ds,ishape,numclass=-1,axes = ('b', 0, 1, 'c'),fit_preprocessor=True):

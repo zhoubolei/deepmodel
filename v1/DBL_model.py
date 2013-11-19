@@ -30,8 +30,10 @@ class DBL_model(object):
 
         from pylearn2.datasets.preprocessing import GlobalContrastNormalization
         pre = GlobalContrastNormalization(sqrt_bias = 10,use_std = 1)
-        self.ds_train = EmotionsDataset(which_set='train',start=0,stop=1000,preprocessor=pre)        
-        self.ds_valid = EmotionsDataset(which_set='train',start=1000,stop=1499,preprocessor=pre)        
+        
+        
+        self.ds_train = EmotionsDataset(which_set='train',start=0,stop=25000,preprocessor=pre, trainindex=1)        
+        self.ds_valid = EmotionsDataset(which_set='train',start=25000,stop=28709,preprocessor=pre)        
         #self.ds_test = EmotionsDataset(which_set='public_test')        
 
         myDataset = LoadData(basepath)
