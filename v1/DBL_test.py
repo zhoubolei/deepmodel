@@ -9,7 +9,10 @@ from DBL_layer import DBL_ConvLayers
 from DBL_model import DBL_model
 import os
 import cPickle
+import numpy as np
+
 def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
+    # convolutional_net.yaml baseline
     if pklname!='' and os.path.isfile(pklname):
         DBL = cPickle.load(open(pklname))
         DBL.test_raw(newdata)
@@ -20,6 +23,9 @@ def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
                 num_channels = 1
                 )
         preproc=[0,0]
+        nclass = 7
+        DBL = DBL_model(basepath,nclass,np.append(ishape.shape,1),preproc,cutoff)
+
         # create layers
         nk = [32]
         #nk = [40,30,20]
@@ -32,33 +38,42 @@ def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
         layer_soft = Softmax(
             layer_name='y',
             #max_col_norm = 1.9365,
-            n_classes = 7,
+            n_classes = nclass,
+            init_bias_target_marginals=DBL.ds_train,
             #istdev = .05
             irange = .0
         )
         layers.append(layer_soft)
         
+        # create DBL_model
         #model = MLP(layer_soft, input_space=ishape)
         model = MLP(layers, input_space=ishape)
+        from pylearn2.termination_criteria import MonitorBased
+        algo_term = MonitorBased(            
+                channel_name = "y_misclass",
+                prop_decrease = 0.,
+                N = 10)
         algo = SGD(learning_rate = 0.001,
-                batch_size = 500,
-                batches_per_iter = 1,
+                batch_size = 100,
                 init_momentum = .5,
-                termination_criterion=EpochCounter(1000)
+                monitoring_dataset = DBL.ds_valid,
+                termination_criterion=algo_term
                 )
-
-        # create DBL_model
-        DBL = DBL_model(model,algo,basepath,preproc,cutoff)
+        DBL.run_model(model,algo)
         if pklname!='':
+            DBL.ds_train = []
+            DBL.ds_test = []
+            DBL.ds_valid = []
             cPickle.dump(DBL,open(pklname, 'wb'))
 
     return DBL.result_valid,DBL.result_test
 
 if __name__ == "__main__": 
-    DD = '/afs/csail.mit.edu/u/b/bzhou/data/faceexpression/fer2013/'
+    DD = '/home/Stephen/Desktop/Bird/DLearn/Data/icml_2013_emotions/'
+    #DD = '/afs/csail.mit.edu/u/b/bzhou/data/faceexpression/fer2013/'
     
     data = None
-    T1_v,T1_t = DBL_model_test1(DD,[25000,-1],DD+'train.pkl')
+    T1_v,T1_t = DBL_model_test1(DD,[1500,500],DD+'train.pkl')
     print T1_v[1]
     print T1_t[1]
     """

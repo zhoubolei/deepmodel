@@ -1,41 +1,53 @@
-from DBL_util import LoadData
-from DBL_util import DataPylearn2
+from DBL_util import *
 import numpy as np
 class DBL_model(object):
-    def __init__(self,model=None,algo=None,basepath=[],preproc=[0,0],cutoff=[-1,-1]): 
+    def __init__(self,basepath,numclass,ishape,preproc=[0,0],cutoff=[-1,-1]): 
         # 1. data 
-        self.numclass = model.layers[-1].n_classes
-        self.ishape = np.append(model.input_space.shape,1)
+        self.numclass = numclass
+        self.ishape = ishape
+        #self.numclass = model.layers[-1].n_classes
+        #self.ishape = np.append(model.input_space.shape,1)
         self.preprocess(basepath,preproc[0],preproc[1],cutoff)
 
+    def run_model(self,model,algo):
         # 2. model/algo
         self.model = model
         self.algo  = algo
-        self.algo.setup(self.model, self.ds_train)
- 
         # 3. train/test
+        self.algo.setup(self.model, self.ds_train)
         self.train()
         self.result_valid = self.test(self.ds_valid)
         self.result_test = self.test(self.ds_test)
 
     def preprocess(self,basepath,train_pre=0,flip=3,cutoff=[-1,-1]):
+        """
         myDataset = LoadData(basepath)
         datasets = myDataset.loadTrain(preprocessFLAG=train_pre,flipFLAG=flip,cutFLAG=cutoff[0])
         self.ds_train = DataPylearn2(datasets[0],self.ishape,self.numclass)
         self.ds_valid = DataPylearn2(datasets[1],self.ishape)
         self.ds_test = DataPylearn2(myDataset.loadTest(train_pre,cutoff[1]),self.ishape)
+        """
 
+        from pylearn2.datasets.preprocessing import GlobalContrastNormalization
+        pre = GlobalContrastNormalization(sqrt_bias = 10,use_std = 1)
+        self.ds_train = EmotionsDataset(which_set='train',start=0,stop=1000,preprocessor=pre)        
+        self.ds_valid = EmotionsDataset(which_set='train',start=1000,stop=1499,preprocessor=pre)        
+        #self.ds_test = EmotionsDataset(which_set='public_test')        
+
+        myDataset = LoadData(basepath)
+        self.ds_test = DataPylearn2(myDataset.loadTest(train_pre,cutoff[1]),self.ishape)
     def train(self):
         while True:
             self.algo.train(dataset = self.ds_train)
             self.model.monitor.report_epoch()            
             self.model.monitor()
+            """
             # hack the monitor
             print "monior:\n"
             self.test(self.ds_valid)
+            """
             if not self.algo.continue_learning(self.model):
                 break
-       
     def test_raw(self,ds_raw):
         if ds_raw==None:
             ds = self.ds_test
@@ -72,17 +84,21 @@ class DBL_model(object):
         y = np.concatenate(y)
         y = y[:m]
         ds2.X = ds2.X[:m,:]
-        """"""
+        """
         print y
         print ds2.y
         
+        """
+        if ds2.y.ndim>1:
+            yy = np.argmax(ds2.y,axis=1)
+        else:
+            yy = ds2.y
         print len(y)
-        print len(ds2.y)
-        
+        print len(yy)
         acc = 0
-        if len(ds2.y)>0: 
-            assert len(y)==len(ds2.y)
-            acc = float(np.sum(y-ds2.y==0))/len(ds2.y)
+        if len(yy)>0: 
+            assert len(y)==len(yy)
+            acc = float(np.sum(y-yy==0))/len(yy)
         print acc
         return [[y],[acc]]
 
