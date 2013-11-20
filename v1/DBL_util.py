@@ -26,7 +26,7 @@ class EmotionsDataset(DenseDesignMatrix):
 
     def __init__(self, which_set,
             #base_path = '${PYLEARN2_DATA_PATH}/icml_2013_emotions',
-            base_path = '/afs/csail.mit.edu/u/b/bzhou/data/faceexpression/fer2013',
+            base_path = '/home/bolei/data/icml_2013_emotions',
             start = None,
             stop = None,
             preprocessor = None,
@@ -98,13 +98,11 @@ class EmotionsDataset(DenseDesignMatrix):
         return EmotionsDataset(**self.test_args)
 
     def _load_data(self, path, expect_labels):
-
         assert path.endswith('.csv')
-
-        # If a previous call to this method has already converted
-        # the data to numpy format, load the numpy directly
         X_path = path[:-4] + '.X.npy'
-        Y_path = path[:-4] + '.Y.npy'
+        Y_path = path[:-4] + '.Y.npy'	
+	"""        
+
         if os.path.exists(X_path):
             X = np.load(X_path)
             if expect_labels:
@@ -112,6 +110,7 @@ class EmotionsDataset(DenseDesignMatrix):
             else:
                 y = None
             return X, y
+	"""
 
         # Convert the .csv file to numpy
         csv_file = open(path, 'r')
@@ -146,9 +145,9 @@ class EmotionsDataset(DenseDesignMatrix):
         else:
             y = None
 
-        np.save(X_path, X)
-        if y is not None:
-            np.save(Y_path, y)
+        #np.save(X_path, X)
+        #if y is not None:
+        #    np.save(Y_path, y)
 
         return X, y
         
@@ -191,15 +190,13 @@ class DataPylearn2(DenseDesignMatrix):
 class LoadData(object):
     def __init__(self,base_path='',valid_r=2/3):
         self.base_path = base_path
-        self.files = {'train': 'train.csv', 'test' : 'test.csv'}
+        self.files = {'train': 'train.csv', 'test' : 'test_all.csv', "truth": 'test_all_truth.csv'}
         self.validationSetRatio = valid_r # the size of validation set
         self.data = []
 
     def loadTest(self, preprocessFLAG = 0,cutFLAG=-1):
         print '... loading testing data'
-        file_data = 'test.csv'
-        file_label = 'test_all_truth.csv'
-        csv_file = open(self.base_path + file_data, 'r')
+        csv_file = open(self.base_path + self.files['test'], 'r')
         reader = csv.reader(csv_file)
         # Discard header
         row = reader.next()
@@ -217,7 +214,7 @@ class LoadData(object):
             if cc==cutFLAG:
                 break
 
-        csv_file = open(self.base_path + file_label, 'r')
+        csv_file = open(self.base_path + self.files['truth'], 'r')
         reader = csv.reader(csv_file)
         # Discard header
         #row = reader.next()
@@ -240,8 +237,7 @@ class LoadData(object):
         # preprocessFLAG: whether to do preprocess on the data
         # flipFLAG: whether augment training data with the flipped samples   
         print '... loading training data'
-        setType = 'train'
-        csv_file = open(self.base_path + self.files[setType], 'r')
+        csv_file = open(self.base_path + self.files['train'], 'r')
         reader = csv.reader(csv_file)
         # Discard header
         row = reader.next()

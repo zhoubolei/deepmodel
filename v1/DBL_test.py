@@ -17,9 +17,10 @@ def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
     # convolutional_net.yaml baseline
     if pklname!='' and os.path.isfile(pklname):
         DBL = cPickle.load(open(pklname))
+	DBL.preprocess(basepath,0,0,[1, 1])
         DBL.test_raw(newdata)
     else:
-        # data 
+        # data
         ishape = Conv2DSpace(
                 shape = [48, 48],
                 num_channels = 1
@@ -56,7 +57,7 @@ def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
         #        prop_decrease = 0.,
         #        N = 100)
                 
-        algo_term = EpochCounter(200)
+        algo_term = EpochCounter(200) # number of epoch iteration
         algo = SGD(learning_rate = 0.001,
                 batch_size = 500,
                 init_momentum = .5,
@@ -74,12 +75,13 @@ def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
 
 if __name__ == "__main__": 
     #DD = '/home/Stephen/Desktop/Bird/DLearn/Data/icml_2013_emotions/'
-    DD = '/afs/csail.mit.edu/u/b/bzhou/data/faceexpression/fer2013/'
-    
+    #DD = '/afs/csail.mit.edu/u/b/bzhou/data/faceexpression/fer2013/'
+    DD = '/home/bolei/data/icml_2013_emotions/'
     data = None
-    T1_v,T1_t = DBL_model_test1(DD,[-1,-1],DD+'train.pkl')
+    T1_v,T1_t = DBL_model_test1(DD,[-1,-1],'train.pkl')
     print T1_v[1]
     print T1_t[1]
+
     """
     import cPickle
     FF = '/home/Stephen/Desktop/Bird/DLearn/Data/Emotion/train.pkl'
