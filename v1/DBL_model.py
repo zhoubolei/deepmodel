@@ -5,8 +5,6 @@ class DBL_model(object):
         # 1. data 
         self.numclass = numclass
         self.ishape = ishape
-        #self.numclass = model.layers[-1].n_classes
-        #self.ishape = np.append(model.input_space.shape,1)
         self.preprocess(basepath,preproc[0],preproc[1],cutoff)
 
     def run_model(self,model,algo):
@@ -60,7 +58,7 @@ class DBL_model(object):
     
     def test(self,ds2):
         # https://github.com/lisa-lab/pylearn2/blob/master/pylearn2/scripts/icml_2013_wrepl/emotions/make_submission.py
-        batch_size = self.algo.batch_size
+        batch_size = 500 #self.algo.batch_size
         m = ds2.X.shape[0]
         extra = (batch_size - m % batch_size) % batch_size
         #print extra,batch_size,m
