@@ -190,7 +190,7 @@ class DataPylearn2(DenseDesignMatrix):
 class LoadData(object):
     def __init__(self,base_path='',valid_r=2/3):
         self.base_path = base_path
-        self.files = {'train': 'train.csv', 'test' : 'test_all.csv', "truth": 'test_all_truth.csv'}
+        self.files = {'train': 'train.csv', 'test' : 'test.csv', "truth": 'test_all_truth.csv'}
         self.validationSetRatio = valid_r # the size of validation set
         self.data = []
 
