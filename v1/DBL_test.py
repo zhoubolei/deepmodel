@@ -27,7 +27,7 @@ def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
     DBL = DBL_model(basepath,nclass,np.append(ishape.shape,1),preproc,cutoff)
         
     # create layers
-    nk = [30, 40]
+    nk = [30]
     #nk = [40,30,20]
     ks = [[8,8],[5,5],[3,3]]
     ir = [0.05,0.05,0.05]
@@ -68,7 +68,7 @@ def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
         
     else:
                 
-        algo_term = EpochCounter(2) # number of epoch iteration
+        algo_term = EpochCounter(500) # number of epoch iteration
         algo = SGD(learning_rate = 0.001,
                 batch_size = 500,
                 init_momentum = .5,
@@ -87,19 +87,18 @@ def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
                 layer_params.append([param[0].get_value(), param[1].get_value()])
                 
             #cPickle.dump(DBL,open(pklname, 'wb'))
+            #cPickle.dump(layer_params, open(pklname + '.cpu', 'wb'))
             cPickle.dump(layer_params, open(pklname + '.cpu', 'wb'))
-            
 
         print DBL.result_valid[1], DBL.result_test[1]
+    return DBL.result_valid[1], DBL.result_test[1]
 
 if __name__ == "__main__": 
-    #DD = '/home/Stephen/Desktop/Bird/DLearn/Data/icml_2013_emotions/'
-    #DD = '/afs/csail.mit.edu/u/b/bzhou/data/faceexpression/fer2013/'
-    DD = '/home/bolei/data/icml_2013_emotions/'
-    data = None
-    T1_v,T1_t = DBL_model_test1(DD,[-1,-1],'train_tmp.pkl')
-
-    """
+    DD = '/data/vision/billf/manifold-learning/DL/Data/icml_2013_emotions/'
+    T1_v,T1_t = DBL_model_test1(DD,[-1,-1],'train30.pkl')
+    
+    
+"""
     import cPickle
     FF = '/home/Stephen/Desktop/Bird/DLearn/Data/Emotion/train.pkl'
     a=cPickle.load(open(FF))
@@ -122,4 +121,4 @@ if __name__ == "__main__":
 
 
 THEANO_FLAGS=mode=FAST_RUN,device=gpu0,floatX=float32 python DBL_test.py
-    """
+"""

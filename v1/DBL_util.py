@@ -25,8 +25,8 @@ class EmotionsDataset(DenseDesignMatrix):
     """
 
     def __init__(self, which_set,
-            #base_path = '${PYLEARN2_DATA_PATH}/icml_2013_emotions',
-            base_path = '/home/bolei/data/icml_2013_emotions',
+            base_path = '/data/vision/billf/manifold-learning/DL/Data/icml_2013_emotions',
+            #base_path = '/home/bolei/data/icml_2013_emotions',
             start = None,
             stop = None,
             preprocessor = None,
@@ -81,8 +81,8 @@ class EmotionsDataset(DenseDesignMatrix):
                 y = y[start:stop, :]
         if trainindex:
             X_list_flipLR, X_list_flipUD = self.flipData(X)
-            X = X + X_list_flipLR + X_list_flipUD
-            y = y + y + y
+            X = X + X_list_flipLR
+            y = y + y
         
         view_converter = DefaultViewConverter(shape=[48,48,1], axes=axes)
 
