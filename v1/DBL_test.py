@@ -13,50 +13,62 @@ import os
 import cPickle
 import numpy as np
 
+# convolutional_net.yaml baseline
 def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
-    # convolutional_net.yaml baseline
-    if pklname!='' and os.path.isfile(pklname):
-        DBL = cPickle.load(open(pklname))
-        DBL.test_raw(newdata)
-    else:
-        # data 
-        ishape = Conv2DSpace(
-                shape = [48, 48],
-                num_channels = 1
-                )
-        preproc=[0,0]
-        nclass = 7
-        DBL = DBL_model(basepath,nclass,np.append(ishape.shape,1),preproc,cutoff)
 
-        # create layers
-        nk = [30, 40]
-        #nk = [40,30,20]
-        ks = [[8,8],[5,5],[3,3]]
-        ir = [0.05,0.05,0.05]
-        ps = [[4,4],[4,4],[2,2]]
-        pd = [[2,2],[2,2],[2,2]]
-        kn = [0.9,0.9,0.9]
-        layers = DBL_ConvLayers(nk,ks,ir,ps,pd,kn)
-        layer_soft = Softmax(
-            layer_name='y',
-            #max_col_norm = 1.9365,
-            n_classes = nclass,
-            init_bias_target_marginals=DBL.ds_train,
-            #istdev = .05
-            irange = .0
-        )
-        layers.append(layer_soft)
+    # data
+    ishape = Conv2DSpace(
+            shape = [48, 48],
+            num_channels = 1
+            )
+    preproc=[0,0]
+    nclass = 7
+    
+    DBL = DBL_model(basepath,nclass,np.append(ishape.shape,1),preproc,cutoff)
         
-        # create DBL_model
-        #model = MLP(layer_soft, input_space=ishape)
-        model = MLP(layers, input_space=ishape)
-        from pylearn2.termination_criteria import MonitorBased, EpochCounter
-        #algo_term = MonitorBased(            
-        #        channel_name = "y_misclass",
-        #        prop_decrease = 0.,
-        #        N = 100)
+    # create layers
+    nk = [30]
+    #nk = [40,30,20]
+    ks = [[8,8],[5,5],[3,3]]
+    ir = [0.05,0.05,0.05]
+    ps = [[4,4],[4,4],[2,2]]
+    pd = [[2,2],[2,2],[2,2]]
+    kn = [0.9,0.9,0.9]
+    layers = DBL_ConvLayers(nk,ks,ir,ps,pd,kn)   
+    layer_soft = Softmax(
+        layer_name='y',
+        #max_col_norm = 1.9365,
+        n_classes = nclass,
+        init_bias_target_marginals=DBL.ds_train,
+        #istdev = .05
+        irange = .0
+    )
+    layers.append(layer_soft)  
+    
+    # create DBL_model      
+    model = MLP(layers, input_space=ishape)
+  
+    if pklname!='' and os.path.isfile(pklname):
+    
+        # load and rebuild model
+        layer_params = cPickle.load(open(pklname + '.cpu'))
+        layer_id = 0
+        for layer in model.layers:
+            if layer_id < len(layers) - 1:
+                layer.set_weights(layer_params[layer_id][0])
+                layer.set_biases(layer_params[layer_id][1])
+            else:
+                layer.set_weights(layer_params[layer_id][1])
+                layer.set_biases(layer_params[layer_id][0])
+            
+            layer_id = layer_id + 1
+        
+        DBL.model = model                
+        DBL.test_raw(newdata)
+        
+    else:
                 
-        algo_term = EpochCounter(200)
+        algo_term = EpochCounter(500) # number of epoch iteration
         algo = SGD(learning_rate = 0.001,
                 batch_size = 500,
                 init_momentum = .5,
@@ -64,23 +76,29 @@ def DBL_model_test1(basepath,cutoff=[-1,-1],pklname='',newdata=None):
                 termination_criterion=algo_term
                 )
         DBL.run_model(model,algo)
+        
+        # save the model
         if pklname!='':
-            DBL.ds_train = []
-            DBL.ds_test = []
-            DBL.ds_valid = []
-            cPickle.dump(DBL,open(pklname, 'wb'))
+            layer_params = []
+            for layer in layers:
+                param = layer.get_params()      
+                print param
+                print param[0].get_value()
+                layer_params.append([param[0].get_value(), param[1].get_value()])
+                
+            #cPickle.dump(DBL,open(pklname, 'wb'))
+            #cPickle.dump(layer_params, open(pklname + '.cpu', 'wb'))
+            cPickle.dump(layer_params, open(pklname + '.cpu', 'wb'))
 
-    return DBL.result_valid,DBL.result_test
+        print DBL.result_valid[1], DBL.result_test[1]
+    return DBL.result_valid[1], DBL.result_test[1]
 
 if __name__ == "__main__": 
-    #DD = '/home/Stephen/Desktop/Bird/DLearn/Data/icml_2013_emotions/'
-    DD = '/afs/csail.mit.edu/u/b/bzhou/data/faceexpression/fer2013/'
+    DD = '/data/vision/billf/manifold-learning/DL/Data/icml_2013_emotions/'
+    T1_v,T1_t = DBL_model_test1(DD,[-1,-1],'train30.pkl')
     
-    data = None
-    T1_v,T1_t = DBL_model_test1(DD,[-1,-1],DD+'train.pkl')
-    print T1_v[1]
-    print T1_t[1]
-    """
+    
+"""
     import cPickle
     FF = '/home/Stephen/Desktop/Bird/DLearn/Data/Emotion/train.pkl'
     a=cPickle.load(open(FF))
@@ -103,4 +121,4 @@ if __name__ == "__main__":
 
 
 THEANO_FLAGS=mode=FAST_RUN,device=gpu0,floatX=float32 python DBL_test.py
-    """
+"""
